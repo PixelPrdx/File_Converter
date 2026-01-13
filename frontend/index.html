@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nova PDF - Giriş</title>
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    // Redirect to converter (Guest Mode) if landing on index and no specific mode is requested
+    const params = new URLSearchParams(window.location.search);
+    const hasToken = localStorage.getItem('token');
+    if (!params.has('mode') && !hasToken) {
+      window.location.href = 'converter.html';
+    } else if (hasToken && !params.has('mode')) {
+      // If already logged in, go to dashboard
+      window.location.href = 'converter.html';
+    }
+  </script>
+</head>
+
+<body class="auth-page">
+  <main class="card">
+    <div class="auth-logo">
+      <svg class="logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L14.4 7.2L20 8L16 12L16.9 17.6L12 15L7.1 17.6L8 12L4 8L9.6 7.2L12 2Z" fill="var(--primary)" />
+        <path d="M12 6L13.2 9.6L17 10.2L14.2 13L14.8 16.8L12 15L9.2 16.8L9.8 13L7 10.2L10.8 9.6L12 6Z" fill="#8b5cf6" />
+      </svg>
+      <h1>Nova PDF</h1>
+    </div>
+    <div id="forms">
+      <!-- Giriş Formu -->
+      <form id="login-form">
+        <h2>Giriş Yap</h2>
+        <input name="email" placeholder="Email" />
+        <div class="password-wrapper">
+          <input name="password" id="login-password" type="password" placeholder="Şifre" />
+          <button type="button" class="toggle-password" data-target="login-password">
+            <svg viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+        <button type="submit">Giriş Yap</button>
+        <p class="muted">Ya da <a href="#" id="show-register">kayıt ol</a></p>
+        <p class="muted"><a href="#" id="show-forgot">Şifremi unuttum</a></p>
+      </form>
+
+      <!-- Kayıt Formu -->
+      <form id="register-form" style="display:none;">
+        <h2>Kayıt Ol</h2>
+        <div style="display:flex;gap:8px">
+          <input name="firstName" placeholder="İsim" required />
+          <input name="lastName" placeholder="Soyisim" required />
+        </div>
+
+        <input name="email" type="email" placeholder="Email" required />
+
+        <div class="phone-group">
+          <div class="select-wrapper">
+            <select name="countryCode" id="country-code">
+              <!-- JS ile dolacak -->
+            </select>
+          </div>
+          <input name="phone" type="tel" placeholder="Telefon numarası" />
+        </div>
+
+        <div class="password-wrapper">
+          <input name="password" id="reg-password" type="password" placeholder="Şifre" required />
+          <button type="button" class="toggle-password" data-target="reg-password">
+            <svg viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+
+        <div class="password-wrapper">
+          <input name="confirmPassword" id="reg-confirm-password" type="password" placeholder="Şifre Tekrar" required />
+          <button type="button" class="toggle-password" data-target="reg-confirm-password">
+            <svg viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+        <button type="submit">Kayıt Ol</button>
+        <p class="muted">Ya da <a href="#" id="show-login">giriş yap</a></p>
+      </form>
+
+      <!-- Şifremi Unuttum Formu -->
+      <form id="forgot-form" style="display:none;">
+        <h2>Şifremi Unuttum</h2>
+        <input name="email" placeholder="Email" />
+        <button type="submit">Sıfırlama Linki Gönder</button>
+        <p class="muted"><a href="#" id="show-login-from-forgot">Giriş yap</a></p>
+      </form>
+
+      <!-- Şifre Sıfırla Formu -->
+      <form id="reset-form" style="display:none;">
+        <h2>Şifre Sıfırla</h2>
+        <input name="token" placeholder="Sıfırlama Kodu (email'de gönderilen)" />
+        <input name="newPassword" type="password" placeholder="Yeni Şifre" />
+        <button type="submit">Şifre Sıfırla</button>
+        <p class="muted"><a href="#" id="show-login-from-reset">Giriş yap</a></p>
+      </form>
+    </div>
+    <div id="status"></div>
+  </main>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</body>
+
+</html>

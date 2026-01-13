@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Doğrulama - Converter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        p {
+            color: #718096;
+            margin-bottom: 32px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn.disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <div class="icon" id="status-icon">⏳</div>
+        <h1 id="status-title">Doğrulanıyor...</h1>
+        <p id="status-message">Lütfen bekleyin, email adresiniz doğrulanıyor.</p>
+        <a href="index.html" class="btn disabled" id="login-btn">Giriş Yap</a>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const statusIcon = document.getElementById('status-icon');
+            const statusTitle = document.getElementById('status-title');
+            const statusMessage = document.getElementById('status-message');
+            const loginBtn = document.getElementById('login-btn');
+
+            if (!token) {
+                statusIcon.textContent = '❌';
+                statusTitle.textContent = 'Hata';
+                statusMessage.textContent = 'Geçersiz doğrulama linki.';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE}/auth/verify-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    statusIcon.textContent = '✅';
+                    statusTitle.textContent = 'Başarılı!';
+                    statusMessage.textContent = 'Email adresiniz başarıyla doğrulandı. Artık giriş yapabilirsiniz.';
+                    loginBtn.classList.remove('disabled');
+                } else {
+                    statusIcon.textContent = '❌';
+                    statusTitle.textContent = 'Doğrulama Başarısız';
+                    statusMessage.textContent = data.message || 'Bir hata oluştu.';
+                }
+            } catch (error) {
+                statusIcon.textContent = '❌';
+                statusTitle.textContent = 'Bağlantı Hatası';
+                statusMessage.textContent = 'Sunucuyla iletişim kurulamadı.';
+            }
+        });
+    </script>
+</body>
+
+</html>
