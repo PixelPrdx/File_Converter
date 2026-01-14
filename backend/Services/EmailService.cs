@@ -53,13 +53,21 @@ namespace ConverterApi.Services
             {
                 using (var client = new SmtpClient())
                 {
-                    client.Timeout = 5000;
+                    // Increased timeout for Render connectivity issues (default was 5000)
+                    client.Timeout = 15000;
+                    // Disable certificate revocation check to speed up connection and avoid external lookups that might time out
+                    client.CheckCertificateRevocation = false;
+
                     var options = smtpPort == 465 ? MailKit.Security.SecureSocketOptions.SslOnConnect : MailKit.Security.SecureSocketOptions.StartTls;
+                    
+                    _logger.LogInformation("Attempting to connect to SMTP: {Server}:{Port} with options: {Options}", smtpServer, smtpPort, options);
+                    
                     await client.ConnectAsync(smtpServer, smtpPort, options);
                     await client.AuthenticateAsync(smtpUsername, smtpPassword);
                     await client.SendAsync(message);
                     await client.DisconnectAsync(true);
                 }
+                _logger.LogInformation("Password reset email sent successfully to {Email}", toEmail);
             }
             catch (Exception ex)
             {
@@ -98,8 +106,15 @@ namespace ConverterApi.Services
             {
                 using (var client = new SmtpClient())
                 {
-                    client.Timeout = 5000;
+                    // Increased timeout for Render connectivity issues (default was 5000)
+                    client.Timeout = 15000;
+                    // Disable certificate revocation check
+                    client.CheckCertificateRevocation = false;
+
                     var options = smtpPort == 465 ? MailKit.Security.SecureSocketOptions.SslOnConnect : MailKit.Security.SecureSocketOptions.StartTls;
+                    
+                    _logger.LogInformation("Attempting to connect to SMTP: {Server}:{Port} with options: {Options}", smtpServer, smtpPort, options);
+
                     await client.ConnectAsync(smtpServer, smtpPort, options);
                     await client.AuthenticateAsync(smtpUsername, smtpPassword);
                     await client.SendAsync(message);
