@@ -27,6 +27,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IConversionService, ConversionService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
