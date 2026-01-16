@@ -284,7 +284,11 @@ let selectedFiles = [];
 
 function handleFiles(files) {
     // Append new files to existing list
-    const newFiles = Array.from(files);
+    const newFiles = Array.from(files).map(file => ({
+        file: file,
+        status: 'pending', // pending, processing, completed, error
+        id: Math.random().toString(36).substr(2, 9)
+    }));
     selectedFiles = [...selectedFiles, ...newFiles];
     updateFilesList();
 
@@ -314,7 +318,30 @@ function updateFilesList() {
         return;
     }
 
-    container.innerHTML = selectedFiles.map((file, index) => `
+    container.innerHTML = selectedFiles.map((item, index) => {
+        const file = item.file;
+        let statusText = 'Dönüştürmeye Hazır (0%)';
+        let statusColor = '';
+        let progressBarWidth = '0%';
+        let progressBarColor = '';
+        let showDownload = false;
+        let url = item.downloadUrl || '#';
+        let downloadName = item.downloadName || '';
+
+        if (item.status === 'completed') {
+            statusText = 'Tamamlandı';
+            statusColor = 'green';
+            progressBarWidth = '100%';
+            showDownload = true;
+        } else if (item.status === 'error') {
+            statusText = item.errorMsg || 'Hata';
+            statusColor = 'red';
+            progressBarColor = 'red';
+        } else if (item.status === 'processing') {
+            statusText = 'Dönüştürülüyor...';
+        }
+
+        return `
     <div class="file-item" id="file-item-${index}">
       <div class="file-item-icon">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
@@ -322,19 +349,25 @@ function updateFilesList() {
       <div class="file-item-info">
         <div class="file-item-name">${file.name}</div>
         <div class="file-item-progress">
-          <div class="file-item-progress-bar" style="width: 0%"></div>
+          <div class="file-item-progress-bar" style="width: ${progressBarWidth}; background-color: ${progressBarColor}"></div>
         </div>
-        <div class="file-item-meta" id="status-${index}">${formatFileSize(file.size)} • Dönüştürmeye Hazır (0%)</div>
+        <div class="file-item-meta" id="status-${index}" style="color: ${statusColor}">${formatFileSize(file.size)} • ${statusText}</div>
       </div>
       <div class="file-item-actions" id="actions-${index}">
+        ${showDownload ? `
+        <a href="${url}" download="${downloadName}" class="btn-icon btn-action-download" title="İndir">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </a>` : ''}
         <button onclick="removeFile(${index})" class="btn-icon btn-action-delete" title="Kaldır">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
         </button>
       </div>
     </div>
-  `).join('');
+  `;
+    }).join('');
 }
 
+// Convert Files
 // Convert Files
 // Update progress UI
 function updateProgressUI(index, percent, statusText) {
@@ -349,8 +382,8 @@ function updateProgressUI(index, percent, statusText) {
     }
 
     if (statusEl) {
-        const file = selectedFiles[index];
-        const fileSize = file ? formatFileSize(file.size) : '';
+        const item = selectedFiles[index];
+        const fileSize = item ? formatFileSize(item.file.size) : '';
 
         if (percent >= 100) {
             statusEl.innerHTML = `${fileSize} • Tamamlandı`;
@@ -389,13 +422,19 @@ async function startConversion() {
     const sourceFormat = document.getElementById('source-format').value;
     const targetFormat = document.getElementById('target-format').value;
 
+    let hasPending = false;
+
     for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
+        const item = selectedFiles[i];
+
+        // Process only pending files
+        if (item.status === 'completed' || item.status === 'processing') continue;
+
+        hasPending = true;
+        item.status = 'processing';
+        const file = item.file;
         const statusEl = document.getElementById(`status-${i}`);
         const actionsEl = document.getElementById(`actions-${i}`);
-
-        // Skip if already processed
-        if (statusEl.textContent.includes('Tamamlandı')) continue;
 
         // Start simulation
         const progressInterval = simulateProgress(i);
@@ -427,6 +466,10 @@ async function startConversion() {
                 const ext = getOutputExtension(targetFormat, contentType);
                 const fileName = file.name.replace(/\.[^/.]+$/, "") + ext;
 
+                item.status = 'completed';
+                item.downloadUrl = url;
+                item.downloadName = fileName;
+
                 updateProgressUI(i, 100, 'Tamamlandı');
 
                 // Add individual download button
@@ -440,21 +483,32 @@ async function startConversion() {
                     </button>
                 `;
 
-                // Show confirmation modal
+                // Show confirmation modal (only for first successful one if multiple to avoid spam, or just last one)
+                // For now, let's show for each as user requested specific flow before
                 await askToDownload(fileName, url);
 
             } else {
                 const txt = await res.text();
-                statusEl.innerHTML = `Hata: ${txt}`; // Use innerHTML to overwrite
-                statusEl.style.color = 'red';
+                item.status = 'error';
+                item.errorMsg = `Hata: ${txt}`;
+
+                if (statusEl) {
+                    statusEl.innerHTML = `Hata: ${txt}`;
+                    statusEl.style.color = 'red';
+                }
                 const progressBar = document.getElementById(`file-item-${i}`).querySelector('.file-item-progress-bar');
                 if (progressBar) progressBar.style.backgroundColor = 'red';
             }
         } catch (err) {
             console.error(err);
             clearInterval(progressInterval);
-            statusEl.innerHTML = 'Bağlantı Hatası';
-            statusEl.style.color = 'red';
+            item.status = 'error';
+            item.errorMsg = 'Bağlantı Hatası';
+
+            if (statusEl) {
+                statusEl.innerHTML = 'Bağlantı Hatası';
+                statusEl.style.color = 'red';
+            }
         }
     }
 
