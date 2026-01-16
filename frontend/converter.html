@@ -11,8 +11,21 @@
 
 <body>
   <div class="dashboard-layout">
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" id="mobile-menu-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="logo">
           <svg class="logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -144,8 +157,10 @@
           </div>
 
           <!-- Free Version Notice -->
-          <div id="free-version-notice" class="notice-box" style="display:none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 16px; margin-bottom: 20px; font-size: 13px; color: #92400e; line-height: 1.5;">
-            <strong>ℹ️ Bilgi:</strong> Ücretsiz kütüphane sınırlamaları nedeniyle Office -> PDF dönüşümlerinde maksimum 3 sayfa desteklenir.
+          <div id="free-version-notice" class="notice-box"
+            style="display:none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 16px; margin-bottom: 20px; font-size: 13px; color: #92400e; line-height: 1.5;">
+            <strong>ℹ️ Bilgi:</strong> Ücretsiz kütüphane sınırlamaları nedeniyle Office -> PDF dönüşümlerinde maksimum
+            3 sayfa desteklenir.
           </div>
 
           <div class="upload-zone" id="upload-zone">

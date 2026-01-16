@@ -144,6 +144,34 @@ function setupEventListeners() {
     if (supportForm) {
         supportForm.addEventListener('submit', handleSubmitSupportRequest);
     }
+
+    // Mobile Menu Toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+
+    if (mobileMenuBtn && sidebar && overlay) {
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.add('mobile-open');
+            overlay.classList.add('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('mobile-open');
+            overlay.classList.remove('active');
+        });
+
+        // Close sidebar when clicking a nav item on mobile
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+    }
 }
 
 // Format Config
@@ -756,7 +784,7 @@ async function downloadHistoryFile(id, originalFileName) {
         // Determine filename extension from the response path or content-type
         const contentDisp = res.headers.get('content-disposition');
         let fileName = originalFileName;
-        
+
         if (contentDisp && contentDisp.indexOf('filename=') !== -1) {
             const fileNameMatch = contentDisp.match(/filename="?([^"]+)"?/);
             if (fileNameMatch && fileNameMatch[1]) fileName = fileNameMatch[1];
