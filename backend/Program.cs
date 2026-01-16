@@ -10,6 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Ensure Environment Variables are explicitly added
 builder.Configuration.AddEnvironmentVariables();
 
+// Fix for Excel/Word file parsing on Linux
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
 var frontendUrl = (builder.Configuration["FrontendUrl"] 
                  ?? builder.Configuration["FRONTEND_URL"] 
                  ?? "https://file-converter-phi-nine.vercel.app").Trim();

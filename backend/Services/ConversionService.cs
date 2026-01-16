@@ -71,11 +71,19 @@ namespace ConverterApi.Services
         {
             return await Task.Run(() =>
             {
-                using var workbook = new Workbook();
-                workbook.LoadFromStream(inputStream);
-                using var output = new MemoryStream();
-                workbook.SaveToStream(output, Spire.Xls.FileFormat.PDF);
-                return output.ToArray();
+                try
+                {
+                    using var workbook = new Workbook();
+                    workbook.LoadFromStream(inputStream);
+                    using var output = new MemoryStream();
+                    workbook.SaveToStream(output, Spire.Xls.FileFormat.PDF);
+                    return output.ToArray();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Excel to PDF conversion failed.");
+                    throw;
+                }
             });
         }
 
