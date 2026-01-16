@@ -24,6 +24,10 @@ RUN apt-get update && apt-get install -y \
     libc6-dev \
     fontconfig \
     fonts-liberation \
+    libreoffice-writer \
+    libreoffice-calc \
+    libreoffice-impress \
+    default-jre \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=publish /app/publish .

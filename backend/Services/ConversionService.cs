@@ -3,12 +3,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Spire.Doc;
-using Spire.Xls;
-using Spire.Presentation;
-using Spire.Pdf;
+using Spire.Pdf; // Keep for PdfToWord etc. if needed, or remove if unused (kept for now for existing PDF to X implementations)
 using PDFtoImage;
 using SkiaSharp;
+using System.Diagnostics;
 
 namespace ConverterApi.Services
 {
@@ -49,59 +47,90 @@ namespace ConverterApi.Services
 
         private async Task<byte[]> WordToPdfAsync(Stream inputStream)
         {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var doc = new Document();
-                    doc.LoadFromStream(inputStream, Spire.Doc.FileFormat.Auto);
-                    using var output = new MemoryStream();
-                    doc.SaveToStream(output, Spire.Doc.FileFormat.PDF);
-                    return output.ToArray();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Word to PDF conversion failed.");
-                    throw;
-                }
-            });
+            return await ConvertWithLibreOfficeAsync(inputStream, "docx");
         }
 
         private async Task<byte[]> ExcelToPdfAsync(Stream inputStream)
         {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var workbook = new Workbook();
-                    workbook.LoadFromStream(inputStream);
-                    using var output = new MemoryStream();
-                    workbook.SaveToStream(output, Spire.Xls.FileFormat.PDF);
-                    return output.ToArray();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Excel to PDF conversion failed.");
-                    throw;
-                }
-            });
+             return await ConvertWithLibreOfficeAsync(inputStream, "xlsx");
         }
 
         private async Task<byte[]> PowerPointToPdfAsync(Stream inputStream)
         {
-            return await Task.Run(() =>
+             return await ConvertWithLibreOfficeAsync(inputStream, "pptx");
+        }
+
+        private async Task<byte[]> ConvertWithLibreOfficeAsync(Stream inputStream, string inputExtension)
+        {
+            /*
+             * LibreOffice Headless Conversion logic:
+             * 1. Save input stream to temp file
+             * 2. Run soffice --headless --convert-to pdf --outdir /tmp input.docx
+             * 3. Read output pdf
+             * 4. Cleanup
+             */
+            
+            var tempId = Guid.NewGuid().ToString();
+            var inputPath = Path.Combine(Path.GetTempPath(), $"{tempId}.{inputExtension}");
+            var outputDir = Path.GetTempPath();
+            var outputPath = Path.Combine(outputDir, $"{tempId}.pdf");
+
+            try 
             {
-                using var presentation = new Presentation();
-                presentation.LoadFromStream(inputStream, Spire.Presentation.FileFormat.Auto);
-                using var output = new MemoryStream();
-                presentation.SaveToFile(output, Spire.Presentation.FileFormat.PDF);
-                return output.ToArray();
-            });
+                using (var fileStream = File.Create(inputPath))
+                {
+                    await inputStream.CopyToAsync(fileStream);
+                }
+
+                var processStartInfo = new ProcessStartInfo
+                {
+                    FileName = "soffice", // libreoffice or soffice depending on distro, usually soffice works if 'libreoffice' package installed
+                    Arguments = $"--headless --convert-to pdf --outdir \"{outputDir}\" \"{inputPath}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                
+                // Fallback for Mac (dev env) if 'soffice' not in PATH, mostly for production Linux
+                // Only for PRODUCTION (Linux) this is guaranteed to work if Dockerfile updated.
+                // On Local Mac without LibreOffice installed this will fail.
+                
+                _logger.LogInformation("Executing LibreOffice conversion: {FileName}", inputPath);
+
+                using var process = new Process { StartInfo = processStartInfo };
+                process.Start();
+                var error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    throw new Exception($"LibreOffice conversion failed. ExitCode: {process.ExitCode}. Error: {error}");
+                }
+
+                if (!File.Exists(outputPath))
+                {
+                     throw new FileNotFoundException($"LibreOffice did not generate output file at {outputPath}. Error: {error}");
+                }
+
+                return await File.ReadAllBytesAsync(outputPath);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "LibreOffice conversion error");
+                throw;
+            }
+            finally
+            {
+                if (File.Exists(inputPath)) File.Delete(inputPath);
+                if (File.Exists(outputPath)) File.Delete(outputPath);
+            }
         }
 
         private async Task<byte[]> PdfToWordAsync(Stream inputStream)
         {
-            return await Task.Run(() =>
+             return await Task.Run(() =>
             {
                 using var pdf = new PdfDocument();
                 pdf.LoadFromStream(inputStream);
