@@ -22,25 +22,31 @@ body {
     min-height: 100vh;
 }
 
-/* Auth Page - Modern Gradient Background */
+/* Auth Page - Background handled by nova-bg.css */
 body.auth-page {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: var(--bg);
     padding: 20px;
+    background: transparent;
+    /* Background container is behind this */
 }
 
-/* Card / Form Container */
+/* Card / Form Container with Glassmorphism */
 body.auth-page .card,
 .card {
     width: 100%;
     max-width: 420px;
     padding: 40px 36px;
     border-radius: 24px;
-    background: var(--card);
-    box-shadow: var(--shadow);
+    background: rgba(255, 255, 255, 0.85);
+    /* Slightly translucent */
+    backdrop-filter: blur(10px);
+    /* Blur background */
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     text-align: center;
     animation: fadeInUp 0.5s ease;
 }
@@ -157,66 +163,7 @@ body.auth-page .card,
     text-decoration: underline;
 }
 
-/* Status Messages */
-#status {
-    margin-top: 16px;
-    padding: 14px 18px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    min-height: 20px;
-}
-
-.status-success {
-    background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
-    color: #22543d;
-}
-
-.status-error {
-    background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
-    color: #742a2a;
-}
-
-.status-info {
-    background: linear-gradient(135deg, #e9d8fd 0%, #d6bcfa 100%);
-    color: #44337a;
-}
-
-/* Decorative Elements */
-body.auth-page::before {
-    content: '';
-    position: fixed;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-    animation: rotate 30s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes rotate {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Floating circles decoration */
-body.auth-page::after {
-    content: '';
-    position: fixed;
-    bottom: 10%;
-    right: 10%;
-    width: 300px;
-    height: 300px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-    pointer-events: none;
-}
+/* Removed legacy decorative elements since they are replaced by nova-bg.css */
 
 /* Phone Input Styles */
 .phone-group {
