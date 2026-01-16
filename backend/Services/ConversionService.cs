@@ -51,11 +51,19 @@ namespace ConverterApi.Services
         {
             return await Task.Run(() =>
             {
-                using var doc = new Document();
-                doc.LoadFromStream(inputStream, Spire.Doc.FileFormat.Auto);
-                using var output = new MemoryStream();
-                doc.SaveToStream(output, Spire.Doc.FileFormat.PDF);
-                return output.ToArray();
+                try
+                {
+                    using var doc = new Document();
+                    doc.LoadFromStream(inputStream, Spire.Doc.FileFormat.Auto);
+                    using var output = new MemoryStream();
+                    doc.SaveToStream(output, Spire.Doc.FileFormat.PDF);
+                    return output.ToArray();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Word to PDF conversion failed.");
+                    throw;
+                }
             });
         }
 

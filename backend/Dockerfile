@@ -22,6 +22,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libgdiplus \
     libc6-dev \
+    fontconfig \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=publish /app/publish .
