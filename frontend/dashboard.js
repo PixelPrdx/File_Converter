@@ -130,6 +130,9 @@ function setupEventListeners() {
     // File upload
     setupFileUpload();
 
+    // Format selection setup
+    setupFormatSelectors();
+
     // Start Conversion Button
     const startBtn = document.getElementById('start-conversion-btn');
     if (startBtn) {
@@ -141,6 +144,76 @@ function setupEventListeners() {
     if (supportForm) {
         supportForm.addEventListener('submit', handleSubmitSupportRequest);
     }
+}
+
+// Format Config
+const formatConfig = {
+    jpg: { targets: ['pdf'], label: 'JPG - Resim' },
+    png: { targets: ['pdf'], label: 'PNG - Resim' },
+    docx: { targets: ['pdf'], label: 'Word Belgesi' },
+    xlsx: { targets: ['pdf'], label: 'Excel Tablosu' },
+    pptx: { targets: ['pdf'], label: 'PowerPoint Sunumu' },
+    pdf: { targets: ['docx', 'xlsx', 'pptx', 'png', 'jpg'], label: 'PDF Belgesi' }
+};
+
+const targetLabels = {
+    pdf: 'PDF Belgesi (.pdf)',
+    docx: 'Word Belgesi (.docx)',
+    xlsx: 'Excel Tablosu (.xlsx)',
+    pptx: 'PowerPoint Sunumu (.pptx)',
+    png: 'PNG Resim (.png)',
+    jpg: 'JPG Resim (.jpg)'
+};
+
+function setupFormatSelectors() {
+    const sourceSelect = document.getElementById('source-format');
+    const targetSelect = document.getElementById('target-format');
+    const notice = document.getElementById('free-version-notice');
+    const input = document.getElementById('file-input');
+
+    if (!sourceSelect || !targetSelect) return;
+
+    sourceSelect.addEventListener('change', () => {
+        const val = sourceSelect.value;
+        const config = formatConfig[val];
+
+        // Update target options
+        targetSelect.innerHTML = '';
+        config.targets.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = targetLabels[t] || t.toUpperCase();
+            targetSelect.appendChild(opt);
+        });
+
+        // Show notice for Office -> PDF
+        if (notice) {
+            const showNotice = ['docx', 'xlsx', 'pptx'].includes(val);
+            notice.style.display = showNotice ? 'block' : 'none';
+        }
+
+        // Update file input accept
+        if (input) {
+            const accepts = {
+                jpg: '.jpg,.jpeg',
+                png: '.png',
+                docx: '.docx,.doc',
+                xlsx: '.xlsx,.xls',
+                pptx: '.pptx,.ppt',
+                pdf: '.pdf'
+            };
+            input.setAttribute('accept', accepts[val] || '*');
+        }
+    });
+
+    // Initial trigger
+    sourceSelect.dispatchEvent(new Event('change'));
+}
+
+function getOutputExtension(target, contentType) {
+    if (contentType.includes('application/zip')) return '.zip';
+    const map = { pdf: '.pdf', docx: '.docx', xlsx: '.xlsx', pptx: '.pptx', png: '.png', jpg: '.jpg' };
+    return map[target] || '.' + target;
 }
 
 // Show page
@@ -322,7 +395,9 @@ async function startConversion() {
             if (res.ok) {
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
-                const fileName = file.name.replace(/\.[^/.]+$/, "") + ".pdf";
+                const contentType = res.headers.get('content-type') || '';
+                const ext = getOutputExtension(targetFormat, contentType);
+                const fileName = file.name.replace(/\.[^/.]+$/, "") + ext;
 
                 updateProgressUI(i, 100, 'Tamamlandı');
 
@@ -414,52 +489,15 @@ function checkPasswordMatch() {
     const confirmPassword = document.getElementById('confirm-password').value;
     const errorEl = document.getElementById('password-error');
 
-    if (confirmPassword && newPassword !== confirmPassword) {
-        errorEl.textContent = '⚠ Şifreler eşleşmiyor';
-    } else {
-        errorEl.textContent = '';
+    if (errorEl) {
+        if (confirmPassword && newPassword !== confirmPassword) {
+            errorEl.textContent = '⚠ Şifreler eşleşmiyor';
+        } else {
+            errorEl.textContent = '';
+        }
     }
 }
 
-// Load user profile from API
-async function loadUserProfile() {
-    const token = localStorage.getItem('token');
-
-    try {
-        const res = await fetch(`${apiBase}/user/profile`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!res.ok) {
-            if (res.status === 401) {
-                logout();
-                return;
-            }
-            return;
-        }
-
-        const profile = await res.json();
-
-        // Update profile display
-        if (document.getElementById('profile-email')) {
-            document.getElementById('profile-email').value = profile.email;
-        }
-
-        if (profile.firstName) {
-            document.getElementById('user-name').textContent = profile.firstName;
-            if (document.getElementById('profile-name')) {
-                document.getElementById('profile-name').value = profile.firstName;
-            }
-            const initials = profile.firstName.substring(0, 2).toUpperCase();
-            document.getElementById('avatar-initials').textContent = initials;
-        }
-
-    } catch (error) {
-        console.error('Profile load error:', error);
-    }
-}
 
 // Handle password change
 async function handlePasswordChange(e) {
@@ -715,11 +753,19 @@ async function downloadHistoryFile(id, originalFileName) {
         a.style.display = 'none';
         a.href = url;
 
-        // Ensure name ends with pdf
+        // Determine filename extension from the response path or content-type
+        const contentDisp = res.headers.get('content-disposition');
         let fileName = originalFileName;
-        if (!fileName.toLowerCase().endsWith('.pdf')) {
+        
+        if (contentDisp && contentDisp.indexOf('filename=') !== -1) {
+            const fileNameMatch = contentDisp.match(/filename="?([^"]+)"?/);
+            if (fileNameMatch && fileNameMatch[1]) fileName = fileNameMatch[1];
+        } else {
+            // Fallback: try to guess extension from content-type if not in disp
+            const contentType = res.headers.get('content-type');
+            const ext = getOutputExtension('', contentType || '');
             const pos = fileName.lastIndexOf('.');
-            fileName = (pos > 0 ? fileName.substring(0, pos) : fileName) + ".pdf";
+            fileName = (pos > 0 ? fileName.substring(0, pos) : fileName) + ext;
         }
 
         a.download = fileName;
