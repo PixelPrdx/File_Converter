@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
-using MailKit.Net.Smtp;
-using MimeKit;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -17,11 +18,13 @@ namespace ConverterApi.Services
     {
         private readonly IConfiguration _config;
         private readonly ILogger<EmailService> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public EmailService(IConfiguration config, ILogger<EmailService> logger)
+        public EmailService(IConfiguration config, ILogger<EmailService> logger, IHttpClientFactory httpClientFactory)
         {
             _config = config;
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task SendPasswordResetEmailAsync(string toEmail, string resetToken, string resetLink)
@@ -54,61 +57,57 @@ namespace ConverterApi.Services
         {
             try
             {
-                await SendEmailInternalAsync(toEmail, "SMTP Test Mesajı", "Bu bir test mesajıdır. Bu mesajı görüyorsanız SMTP ayarlarınız doğrudur.");
+                await SendEmailInternalAsync(toEmail, "Brevo API Test Mesajı", "Bu bir test mesajıdır. Bu mesajı görüyorsanız Brevo HTTP API entegrasyonu başarılıdır.");
                 return true;
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "STMP Test failed for {Email}", toEmail);
+                _logger.LogError(ex, "Brevo API Test failed for {Email}", toEmail);
                 throw;
             }
         }
 
         private async Task SendEmailInternalAsync(string toEmail, string subject, string htmlBody)
         {
-            var smtpServer = _config["Email:SmtpServer"]?.Trim();
-            var smtpPortStr = _config["Email:SmtpPort"]?.Trim();
-            var smtpPort = string.IsNullOrEmpty(smtpPortStr) ? 587 : int.Parse(smtpPortStr);
-            var fromEmail = _config["Email:FromEmail"]?.Trim();
-            var fromName = _config["Email:FromName"]?.Trim();
-            var smtpUsername = _config["Email:SmtpUsername"]?.Trim();
-            var smtpPassword = _config["Email:SmtpPassword"]?.Trim();
+            // API Settings from configuration
+            // Priority: appsettings.json or Environment Variables (Brevo__ApiKey)
+            var apiKey = _config["Brevo:ApiKey"] ?? _config["BREVO_API_KEY"];
+            var senderEmail = _config["Brevo:SenderEmail"] ?? _config["BREVO_SENDER_EMAIL"] ?? "pixelprdx@gmail.com";
+            var senderName = _config["Brevo:SenderName"] ?? "Nova PDF Converter";
 
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(fromName, fromEmail));
-            message.To.Add(new MailboxAddress(toEmail, toEmail));
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
-            message.Body = bodyBuilder.ToMessageBody();
-
-            using (var client = new SmtpClient())
+            if (string.IsNullOrEmpty(apiKey))
             {
-                // Render connectivity optimizations
-                client.Timeout = 20000; // Increased to 20s
-                client.CheckCertificateRevocation = false;
-
-                // Port based security selection
-                var options = MailKit.Security.SecureSocketOptions.Auto;
-                if (smtpPort == 465) options = MailKit.Security.SecureSocketOptions.SslOnConnect;
-                else if (smtpPort == 587) options = MailKit.Security.SecureSocketOptions.StartTls;
-
-                _logger.LogInformation("Connecting to SMTP {Host}:{Port} ({Options})", smtpServer, smtpPort, options);
-
-                try
-                {
-                    await client.ConnectAsync(smtpServer, smtpPort, options);
-                    await client.AuthenticateAsync(smtpUsername, smtpPassword);
-                    await client.SendAsync(message);
-                    await client.DisconnectAsync(true);
-                    _logger.LogInformation("Email '{Subject}' sent successfully to {Email}", subject, toEmail);
-                }
-                catch (System.Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to send email '{Subject}' to {Email}. Port: {Port}", subject, toEmail, smtpPort);
-                    throw;
-                }
+                _logger.LogWarning("Brevo API Key is missing. Falling back to SMTP config if available...");
+                // Note: We could fallback to SMTP here, but since the goal is to skip SMTP, we throw if API key is missing.
+                throw new System.Exception("Brevo API Key is not configured. Please set 'Brevo:ApiKey' in Render.");
             }
+
+            var client = _httpClientFactory.CreateClient();
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+            request.Headers.Add("api-key", apiKey);
+
+            var payload = new
+            {
+                sender = new { name = senderName, email = senderEmail },
+                to = new[] { new { email = toEmail } },
+                subject = subject,
+                htmlContent = htmlBody
+            };
+
+            request.Content = JsonContent.Create(payload);
+
+            _logger.LogInformation("Sending email via Brevo API to {Email}", toEmail);
+
+            var response = await client.SendAsync(request);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Brevo API Error: {StatusCode} - {Error}", response.StatusCode, error);
+                throw new System.Exception($"Brevo API call failed: {response.StatusCode}. Details: {error}");
+            }
+
+            _logger.LogInformation("Email '{Subject}' sent successfully via Brevo API", subject);
         }
     }
 }
