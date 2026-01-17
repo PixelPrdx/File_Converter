@@ -7,25 +7,29 @@
     <title>Email Doğrulama - Converter</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="nova-bg.css">
     <style>
         body {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: transparent;
             margin: 0;
             padding: 20px;
         }
 
         .card {
-            background: white;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             padding: 40px;
             border-radius: 24px;
             text-align: center;
             max-width: 400px;
             width: 100%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
         .icon {
@@ -69,6 +73,24 @@
 </head>
 
 <body>
+    <!-- Animated Background -->
+    <div class="nova-bg-container">
+        <div class="nebula-clouds">
+            <div class="cloud-layer cloud-1"></div>
+            <div class="cloud-layer cloud-2"></div>
+            <div class="cloud-layer cloud-3"></div>
+            <div class="cloud-layer cloud-4"></div>
+        </div>
+        <div class="star-field"></div>
+        <div class="spike-star star-1"></div>
+        <div class="spike-star star-2"></div>
+        <div class="spike-star star-3"></div>
+        <div class="spike-star star-4"></div>
+        <div class="shooting-star s-1"></div>
+        <div class="shooting-star s-2"></div>
+        <div class="shooting-star s-3"></div>
+        <div class="shooting-star s-4"></div>
+    </div>
     <div class="card">
         <div class="icon" id="status-icon">⏳</div>
         <h1 id="status-title">Doğrulanıyor...</h1>
