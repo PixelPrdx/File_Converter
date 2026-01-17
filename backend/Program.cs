@@ -126,7 +126,9 @@ app.MapGet("/config-debug", (IConfiguration config) =>
     return Results.Ok(new { 
         FoundKeys = keys,
         FrontendUrl = config["FrontendUrl"] ?? config["FRONTEND_URL"] ?? "Still Null",
-        SmtpServer = config["Email:SmtpServer"] ?? "Still Null"
+        SmtpServer = config["Email:SmtpServer"] ?? "Still Null",
+        SmtpPort = config["Email:SmtpPort"] ?? "Still Null",
+        SmtpUsername = config["Email:SmtpUsername"] ?? "Still Null"
     });
 });
 

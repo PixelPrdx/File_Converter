@@ -108,6 +108,21 @@ namespace ConverterApi.Controllers
             return Ok(new { message = "Email başarıyla doğrulandı. Giriş yapabilirsiniz." });
         }
 
+        [HttpGet("test-email")]
+        public async System.Threading.Tasks.Task<IActionResult> TestEmail([FromQuery] string email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return BadRequest("Email parametresi gerekli");
+            try 
+            {
+                await _emailService.TestEmailAsync(email);
+                return Ok(new { success = true, message = "Test maili başarıyla gönderildi." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message, detail = ex.ToString() });
+            }
+        }
+
         [HttpPost("forgot-password")]
         public async System.Threading.Tasks.Task<IActionResult> ForgotPassword([FromBody] ForgotRequest req)
         {

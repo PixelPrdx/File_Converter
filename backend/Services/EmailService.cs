@@ -9,6 +9,7 @@ namespace ConverterApi.Services
     {
         Task SendPasswordResetEmailAsync(string toEmail, string resetToken, string resetLink);
         Task SendVerificationEmailAsync(string toEmail, string verificationLink);
+        Task<bool> TestEmailAsync(string toEmail);
     }
 
     public class EmailService : IEmailService
@@ -75,7 +76,7 @@ namespace ConverterApi.Services
             }
         }
 
-        public async Task SendVerificationEmailAsync(string toEmail, string verificationLink)
+        public async Task<bool> TestEmailAsync(string toEmail)
         {
             var smtpServer = _config["Email:SmtpServer"]?.Trim();
             var smtpPort = int.Parse(_config["Email:SmtpPort"]?.Trim() ?? "587");
@@ -87,45 +88,19 @@ namespace ConverterApi.Services
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(fromName, fromEmail));
             message.To.Add(new MailboxAddress(toEmail, toEmail));
-            message.Subject = "Email Doğrulama";
+            message.Subject = "SMTP Test Mesajı";
+            message.Body = new TextPart("plain") { Text = "Bu bir test mesajıdır. Bu mesajı görüyorsanız SMTP ayarlarınız doğrudur." };
 
-            var bodyBuilder = new BodyBuilder
+            using (var client = new SmtpClient())
             {
-                HtmlBody = $@"
-                    <h2>Email Doğrulama</h2>
-                    <p>Merhaba,</p>
-                    <p>Kaydınızı tamamlamak için lütfen aşağıdaki linke tıklayın:</p>
-                    <p><a href='{verificationLink}'>Hesabımı Doğrula</a></p>
-                    <p>veya bu linki tarayıcınıza yapıştırın: {verificationLink}</p>
-                    <p>Saygılarımızla,<br/>Converter Ekibi</p>"
-            };
-
-            message.Body = bodyBuilder.ToMessageBody();
-
-            try
-            {
-                using (var client = new SmtpClient())
-                {
-                    // Increased timeout for Render connectivity issues (default was 5000)
-                    client.Timeout = 15000;
-                    // Disable certificate revocation check
-                    client.CheckCertificateRevocation = false;
-
-                    var options = smtpPort == 465 ? MailKit.Security.SecureSocketOptions.SslOnConnect : MailKit.Security.SecureSocketOptions.StartTls;
-                    
-                    _logger.LogInformation("Attempting to connect to SMTP: {Server}:{Port} with options: {Options}", smtpServer, smtpPort, options);
-
-                    await client.ConnectAsync(smtpServer, smtpPort, options);
-                    await client.AuthenticateAsync(smtpUsername, smtpPassword);
-                    await client.SendAsync(message);
-                    await client.DisconnectAsync(true);
-                }
-                _logger.LogInformation("Verification Email sent successfully to {Email}", toEmail);
+                client.Timeout = 15000;
+                client.CheckCertificateRevocation = false;
+                var options = smtpPort == 465 ? MailKit.Security.SecureSocketOptions.SslOnConnect : MailKit.Security.SecureSocketOptions.StartTls;
+                
+                await client.ConnectAsync(smtpServer, smtpPort, options);
+                await client.AuthenticateAsync(smtpUsername, smtpPassword);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "STMP Error: Verification Email failed for {Email}. Message: {Message}", toEmail, ex.Message);
-            }
+            return true;
         }
-    }
-}
