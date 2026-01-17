@@ -38,7 +38,7 @@ namespace ConverterApi.Controllers
                 return BadRequest("İsim ve soyisim gerekli");
 
             if (await _db.Users.AnyAsync(u => u.Email == req.Email))
-                return Conflict("Email zaten kayıtlı");
+                return Conflict(new { message = "Bu kullanıcı zaten sistemde mevcut" });
 
             PasswordHasher.CreatePasswordHash(req.Password, out var hash, out var salt);
             

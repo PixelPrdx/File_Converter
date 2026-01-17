@@ -105,18 +105,25 @@ document.getElementById('register-form').addEventListener('submit', async e => {
   // Note: Backend expects generic "PhoneNumber" field which we map to the raw number input
 
   const res = await fetch(`${apiBase}/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password, firstName, lastName, CountryCode: countryCode, PhoneNumber: phone }) });
-  const txt = await res.json();
+
+  let data;
+  const rawText = await res.text();
+  try {
+    data = JSON.parse(rawText);
+  } catch (e) {
+    data = { message: rawText };
+  }
 
   if (res.ok) {
     let msg = 'Kayıt başarılı! Lütfen emailinize gelen doğrulama linkine tıklayın.';
-    if (txt.verifyLink) {
-      msg += `<br><br><a href="${txt.verifyLink}" style="color: white; font-weight: bold; text-decoration: underline;">Doğrulama Linki (Tıklayın)</a>`;
+    if (data.verifyLink) {
+      msg += `<br><br><a href="${data.verifyLink}" style="color: white; font-weight: bold; text-decoration: underline;">Doğrulama Linki (Tıklayın)</a>`;
     }
     setStatus(msg, 'success');
     f.reset();
-    setTimeout(() => toggleForms('login'), 8000); // Increased time for user to click
+    setTimeout(() => toggleForms('login'), 8000);
   } else {
-    setStatus(`Hata: ${txt.message || 'Kayıt başarısız'}`, 'error');
+    setStatus(`Hata: ${data.message || 'Kayıt başarısız'}`, 'error');
   }
 });
 
